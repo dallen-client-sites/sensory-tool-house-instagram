@@ -1,0 +1,223 @@
+{% comment %}
+  Sensory Tool House Instagram carousel (Custom liquid version, no code editor needed).
+  Paste into a Custom liquid section. Set FEED_URL below to the raw GitHub URL of data/instagram-feed.json.
+{% endcomment %}
+
+{%- assign feed_url = 'https://raw.githubusercontent.com/dallen-client-sites/sensory-tool-house-instagram/main/data/instagram-feed.json' -%}
+{%- assign heading  = 'Follow along' -%}
+{%- assign sub      = 'New arrivals, calm ideas and the tools we love, fresh from our Lacey shelves.' -%}
+{%- assign handle   = 'sensorytoolhouse' -%}
+{%- assign post_count = 8 -%}
+{%- assign bg_color = '#eef7f2' -%}
+{%- assign text_color = '#26303b' -%}
+{%- assign accent_color = '#5a7391' -%}
+
+<section
+  class="sth-ig-section"
+  data-sth-ig
+  data-feed-url="{{ feed_url }}"
+  data-post-count="{{ post_count }}"
+  style="
+    --sth-ig-bg: {{ bg_color }};
+    --sth-ig-fg: {{ text_color }};
+    --sth-ig-accent: {{ accent_color }};
+  "
+>
+  <div class="sth-ig-inner">
+    <header class="sth-ig-header">
+      {% if heading != blank %}<h2 class="sth-ig-heading">{{ heading }}</h2>{% endif %}
+      {% if sub != blank %}<p class="sth-ig-sub">{{ sub }}</p>{% endif %}
+      {% if handle != blank %}
+        <a class="sth-ig-handle" href="https://instagram.com/{{ handle | remove: '@' }}" target="_blank" rel="noopener">
+          @{{ handle | remove: '@' }}
+        </a>
+      {% endif %}
+    </header>
+
+    <div class="sth-ig-carousel" role="region" aria-label="Instagram posts">
+      <button class="sth-ig-nav sth-ig-prev" type="button" aria-label="Previous">&lsaquo;</button>
+      <ul class="sth-ig-track" data-sth-ig-track>
+        {%- for i in (1..post_count) -%}
+          <li class="sth-ig-card sth-ig-skeleton" aria-hidden="true">
+            <div class="sth-ig-img"></div>
+            <div class="sth-ig-caption-skel"></div>
+          </li>
+        {%- endfor -%}
+      </ul>
+      <button class="sth-ig-nav sth-ig-next" type="button" aria-label="Next">&rsaquo;</button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sth-ig-section {
+    background: var(--sth-ig-bg, #eef7f2);
+    color:      var(--sth-ig-fg, #26303b);
+    padding: 72px 16px;
+    font-family: inherit;
+  }
+  .sth-ig-section[data-failed] { display: none; }
+  .sth-ig-inner { max-width: 1200px; margin: 0 auto; }
+  .sth-ig-header { text-align: center; margin-bottom: 32px; }
+  .sth-ig-heading {
+    font-family: inherit; font-weight: 500; letter-spacing: 0.04em;
+    font-size: clamp(1.5rem, 2.5vw, 2.25rem); margin: 0 0 8px;
+  }
+  .sth-ig-sub { margin: 0 0 8px; opacity: 0.75; font-size: 0.95rem; }
+  .sth-ig-handle {
+    display: inline-block; margin-top: 4px;
+    color: var(--sth-ig-accent, #5a7391);
+    text-decoration: none; font-size: 0.9rem; letter-spacing: 0.06em;
+  }
+  .sth-ig-handle:hover { text-decoration: underline; }
+
+  .sth-ig-carousel { position: relative; }
+  .sth-ig-track {
+    list-style: none; padding: 0; margin: 0;
+    display: grid; grid-auto-flow: column;
+    grid-auto-columns: calc(25% - 18px);
+    gap: 24px;
+    overflow-x: auto; scroll-snap-type: x mandatory;
+    scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    padding: 8px 4px 16px;
+    scrollbar-width: thin;
+  }
+  @media (max-width: 900px) { .sth-ig-track { grid-auto-columns: calc(50% - 12px); } }
+  @media (max-width: 600px) { .sth-ig-track { grid-auto-columns: 80%; gap: 16px; } }
+
+  .sth-ig-card {
+    scroll-snap-align: start;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: transform 200ms ease, box-shadow 200ms ease;
+    display: flex; flex-direction: column;
+  }
+  .sth-ig-card a {
+    color: inherit; text-decoration: none; display: flex; flex-direction: column; height: 100%;
+  }
+  .sth-ig-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+
+  .sth-ig-img {
+    aspect-ratio: 1 / 1;
+    background: #d7eadf center/cover no-repeat;
+    width: 100%;
+  }
+  .sth-ig-caption {
+    padding: 12px 14px 16px; font-size: 0.85rem; line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sth-ig-meta {
+    padding: 0 14px 14px; font-size: 0.72rem; opacity: 0.55; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  /* Skeleton loading animation */
+  .sth-ig-skeleton .sth-ig-img,
+  .sth-ig-caption-skel {
+    background: linear-gradient(90deg, #d7eadf 0%, #eef7f2 50%, #d7eadf 100%);
+    background-size: 200% 100%;
+    animation: sth-ig-shimmer 1.4s linear infinite;
+  }
+  .sth-ig-caption-skel { height: 48px; margin: 12px 14px 16px; border-radius: 2px; }
+  @keyframes sth-ig-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .sth-ig-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--sth-ig-accent, #5a7391);
+    background: #fff; color: var(--sth-ig-accent, #5a7391);
+    font-size: 1.5rem; line-height: 1; cursor: pointer;
+    display: grid; place-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    z-index: 2;
+  }
+  .sth-ig-nav:hover { background: var(--sth-ig-accent, #5a7391); color: #fff; }
+  .sth-ig-prev { left: -8px; }
+  .sth-ig-next { right: -8px; }
+  @media (max-width: 600px) { .sth-ig-nav { display: none; } }
+</style>
+
+<script>
+(function () {
+  const root = Array.prototype.filter.call(document.querySelectorAll('[data-sth-ig]'), function (el) { return !el.dataset.ready; })[0];
+  if (!root) return;
+  root.dataset.ready = '1';
+
+  const track    = root.querySelector('[data-sth-ig-track]');
+  const feedUrl  = root.dataset.feedUrl;
+  const limit    = parseInt(root.dataset.postCount, 10) || 8;
+
+  if (!feedUrl) {
+    console.warn('[ig-feed] No feed_url configured in section settings.');
+    return;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+    });
+  }
+
+  function relativeDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7)  return days + ' days ago';
+    if (days < 30) return Math.floor(days / 7) + 'w ago';
+    return d.toLocaleDateString();
+  }
+
+  function render(posts) {
+    track.innerHTML = '';
+    posts.slice(0, limit).forEach(function (p) {
+      const li = document.createElement('li');
+      li.className = 'sth-ig-card';
+      const caption = (p.caption || '').slice(0, 200);
+      li.innerHTML =
+        '<a href="' + escapeHtml(p.permalink) + '" target="_blank" rel="noopener">' +
+          '<div class="sth-ig-img" style="background-image:url(\'' + escapeHtml(p.image_url) + '\')"></div>' +
+          (caption ? '<div class="sth-ig-caption">' + escapeHtml(caption) + '</div>' : '') +
+          '<div class="sth-ig-meta">' + escapeHtml(relativeDate(p.timestamp)) + '</div>' +
+        '</a>';
+      track.appendChild(li);
+    });
+  }
+
+  function showError(msg) {
+    track.innerHTML = '<li class="sth-ig-card" style="grid-column: 1 / -1; padding: 24px; text-align:center;">' +
+      escapeHtml(msg) + '</li>';
+  }
+
+  var cacheKey = Math.floor(Date.now() / 3600000);
+  fetch(feedUrl + (feedUrl.indexOf('?') === -1 ? '?' : '&') + 'v=' + cacheKey, { cache: 'default' })
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      if (!data || !Array.isArray(data.posts) || data.posts.length === 0) {
+        root.setAttribute('data-failed','1');
+        return;
+      }
+      render(data.posts);
+    })
+    .catch(function (err) {
+      console.warn('[ig-feed] Failed to load feed:', err);
+      root.setAttribute('data-failed','1');
+    });
+
+  var prev = root.querySelector('.sth-ig-prev');
+  var next = root.querySelector('.sth-ig-next');
+  function step(dir) {
+    var card = track.querySelector('.sth-ig-card');
+    var w = card ? card.getBoundingClientRect().width + 24 : 300;
+    track.scrollBy({ left: dir * w, behavior: 'smooth' });
+  }
+  if (prev) prev.addEventListener('click', function () { step(-1); });
+  if (next) next.addEventListener('click', function () { step(1); });
+})();
+</script>
