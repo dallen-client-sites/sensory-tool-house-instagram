@@ -1,0 +1,13 @@
+{
+  "name": "sensory-tool-house-instagram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily fetcher for the @sensorytoolhouse Instagram gallery on sensorytoolhouse.com",
+  "main": "fetch-instagram.js",
+  "scripts": {
+    "fetch": "node fetch-instagram.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
