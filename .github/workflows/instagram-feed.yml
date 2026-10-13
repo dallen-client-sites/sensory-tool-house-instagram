@@ -30,19 +30,19 @@ jobs:
         env:
           IG_PAGE_TOKEN: ${{ secrets.IG_PAGE_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          POST_LIMIT: '8'
+          POST_LIMIT: '6'
         run: |
           cd scripts
           node fetch-instagram.js
 
       - name: Commit updated feed
         run: |
-          if git diff --quiet -- data/instagram-feed.json; then
+          git add -A data
+          if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/instagram-feed.json
           git commit -m "chore: refresh Instagram feed [skip ci]"
           git push
