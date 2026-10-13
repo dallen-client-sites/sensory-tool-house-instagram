@@ -27,35 +27,13 @@ jobs:
           node-version: '20'
 
       - name: Fetch latest posts
-        id: fetch
         env:
-          IG_LONG_LIVED_TOKEN: ${{ secrets.IG_LONG_LIVED_TOKEN }}
+          IG_PAGE_TOKEN: ${{ secrets.IG_PAGE_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           POST_LIMIT: '8'
         run: |
           cd scripts
-          node fetch-instagram.js | tee ../fetch.log
-          NEW_TOKEN=$(grep '^NEW_TOKEN=' ../fetch.log | tail -n1 | cut -d= -f2-)
-          if [ -n "$NEW_TOKEN" ]; then
-            echo "rotated=true" >> "$GITHUB_OUTPUT"
-            echo "::add-mask::$NEW_TOKEN"
-            echo "new_token=$NEW_TOKEN" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Rotate IG_LONG_LIVED_TOKEN secret
-        if: steps.fetch.outputs.rotated == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT_FOR_SECRETS }}
-          NEW_TOKEN: ${{ steps.fetch.outputs.new_token }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "GH_PAT_FOR_SECRETS not set, skipping automatic secret rotation."
-            exit 0
-          fi
-          gh secret set IG_LONG_LIVED_TOKEN \
-            --body "$NEW_TOKEN" \
-            --repo "$GITHUB_REPOSITORY"
-          echo "Rotated IG_LONG_LIVED_TOKEN."
+          node fetch-instagram.js
 
       - name: Commit updated feed
         run: |
