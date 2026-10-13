@@ -7,7 +7,8 @@
 {%- assign heading  = 'Follow along' -%}
 {%- assign sub      = 'New arrivals, calm ideas and the tools we love, fresh from our Lacey shelves.' -%}
 {%- assign handle   = 'sensorytoolhouse' -%}
-{%- assign post_count = 8 -%}
+{%- assign post_count = 6 -%}
+{%- assign max_age_days = 4 -%}
 {%- assign bg_color = '#eef7f2' -%}
 {%- assign text_color = '#26303b' -%}
 {%- assign accent_color = '#5a7391' -%}
@@ -17,6 +18,7 @@
   data-sth-ig
   data-feed-url="{{ feed_url }}"
   data-post-count="{{ post_count }}"
+  data-max-age-days="{{ max_age_days }}"
   style="
     --sth-ig-bg: {{ bg_color }};
     --sth-ig-fg: {{ text_color }};
@@ -104,6 +106,14 @@
     background: #d7eadf center/cover no-repeat;
     width: 100%;
   }
+  .sth-ig-img { position: relative; }
+  .sth-ig-play {
+    position: absolute; right: 10px; top: 10px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(38,48,59,0.62); color: #fff;
+    display: grid; place-items: center; font-size: 12px; line-height: 1;
+    padding-left: 2px;
+  }
   .sth-ig-caption {
     padding: 12px 14px 16px; font-size: 0.85rem; line-height: 1.45;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
@@ -179,11 +189,21 @@
       const caption = (p.caption || '').slice(0, 200);
       li.innerHTML =
         '<a href="' + escapeHtml(p.permalink) + '" target="_blank" rel="noopener">' +
-          '<div class="sth-ig-img" style="background-image:url(\'' + escapeHtml(p.image_url) + '\')"></div>' +
+          '<div class="sth-ig-img" style="background-image:url(\'' + escapeHtml(p.image_url) + '\')">' +
+            (p.media_type === 'VIDEO' ? '<span class="sth-ig-play" aria-hidden="true">&#9654;</span>' : '') +
+          '</div>' +
           (caption ? '<div class="sth-ig-caption">' + escapeHtml(caption) + '</div>' : '') +
           '<div class="sth-ig-meta">' + escapeHtml(relativeDate(p.timestamp)) + '</div>' +
         '</a>';
       track.appendChild(li);
+
+      // Drop any card whose image fails to load, and hide the section if none load.
+      var probe = new Image();
+      probe.onerror = function () {
+        li.remove();
+        if (!track.querySelector('.sth-ig-card')) root.setAttribute('data-failed', '1');
+      };
+      probe.src = p.image_url;
     });
   }
 
@@ -201,6 +221,13 @@
     .then(function (data) {
       if (!data || !Array.isArray(data.posts) || data.posts.length === 0) {
         root.setAttribute('data-failed','1');
+        return;
+      }
+      var maxAge = parseFloat(root.dataset.maxAgeDays) || 4;
+      var made = new Date(data.generated_at);
+      if (!isNaN(made) && (Date.now() - made.getTime()) > maxAge * 86400000) {
+        console.warn('[ig-feed] Feed is older than ' + maxAge + ' days. Hiding section.');
+        root.setAttribute('data-failed', '1');
         return;
       }
       render(data.posts);
