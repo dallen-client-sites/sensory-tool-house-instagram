@@ -2,33 +2,40 @@
 /**
  * fetch-instagram.js
  *
- * Pulls the latest posts from the @sensorytoolhouse Instagram Business
+ * Pulls the latest posts from the @sensorytoolhouse Instagram professional
  * account and writes them to ../data/instagram-feed.json.
  *
- * Uses the "Instagram API with Instagram Login" flow:
- *   - Token refresh:  GET https://graph.instagram.com/refresh_access_token
- *   - Fetch media:    GET https://graph.instagram.com/me/media
+ * Uses the "Instagram API with Facebook Login" flow:
+ *   - Fetch media: GET https://graph.facebook.com/v26.0/{ig-user-id}/media
+ *   - Auth: a Page access token for the Facebook Page linked to the account.
+ *     A Page token made from a long-lived user token does not expire, so there
+ *     is no refresh step.
  *
  * Required env vars:
- *   IG_LONG_LIVED_TOKEN  - long-lived token from Instagram Login setup
- *   IG_USER_ID           - Instagram user ID (use "me" for Instagram Login tokens)
+ *   IG_PAGE_TOKEN  - Page access token (stored as a GitHub secret)
+ *   IG_USER_ID     - Instagram professional account ID (17841445437380170)
  *
  * Optional:
- *   POST_LIMIT           - number of posts to fetch (default 4)
- *   OUTPUT_PATH          - where to write the JSON
+ *   POST_LIMIT     - number of posts to fetch (default 8)
+ *   OUTPUT_PATH    - where to write the JSON
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const TOKEN = process.env.IG_LONG_LIVED_TOKEN;
-const USER_ID = process.env.IG_USER_ID || 'me';
-const LIMIT = parseInt(process.env.POST_LIMIT || '4', 10);
+const TOKEN = process.env.IG_PAGE_TOKEN;
+const USER_ID = process.env.IG_USER_ID;
+const LIMIT = parseInt(process.env.POST_LIMIT || '8', 10);
+const API_VERSION = process.env.GRAPH_API_VERSION || 'v26.0';
 const OUTPUT = process.env.OUTPUT_PATH ||
   path.join(__dirname, '..', 'data', 'instagram-feed.json');
 
 if (!TOKEN) {
-  console.error('Missing IG_LONG_LIVED_TOKEN environment variable.');
+  console.error('Missing IG_PAGE_TOKEN environment variable.');
+  process.exit(1);
+}
+if (!USER_ID) {
+  console.error('Missing IG_USER_ID environment variable.');
   process.exit(1);
 }
 
@@ -36,28 +43,15 @@ async function getJson(url) {
   const res = await fetch(url);
   const body = await res.json();
   if (!res.ok || body.error) {
+    const code = body.error ? ` (code ${body.error.code})` : '';
     throw new Error(
-      `Graph API ${res.status}: ${body.error ? body.error.message : res.statusText}`
+      `Graph API ${res.status}${code}: ${body.error ? body.error.message : res.statusText}`
     );
   }
   return body;
 }
 
-async function refreshToken(token) {
-  const url =
-    `https://graph.instagram.com/refresh_access_token` +
-    `?grant_type=ig_refresh_token` +
-    `&access_token=${token}`;
-  try {
-    const data = await getJson(url);
-    return data.access_token || null;
-  } catch (err) {
-    console.warn(`Token refresh failed (will continue with current token): ${err.message}`);
-    return null;
-  }
-}
-
-async function fetchPosts(token) {
+async function fetchPosts() {
   const fields = [
     'id',
     'caption',
@@ -69,26 +63,30 @@ async function fetchPosts(token) {
   ].join(',');
 
   const url =
-    `https://graph.instagram.com/${USER_ID}/media` +
-    `?fields=${fields}&limit=${LIMIT}&access_token=${token}`;
+    `https://graph.facebook.com/${API_VERSION}/${USER_ID}/media` +
+    `?fields=${fields}&limit=${LIMIT}&access_token=${TOKEN}`;
 
   const data = await getJson(url);
-  return (data.data || []).slice(0, LIMIT).map((p) => ({
-    id: p.id,
-    caption: p.caption || '',
-    image_url: p.media_type === 'VIDEO' ? p.thumbnail_url : p.media_url,
-    permalink: p.permalink,
-    media_type: p.media_type,
-    timestamp: p.timestamp,
-  }));
+  return (data.data || [])
+    .slice(0, LIMIT)
+    .map((p) => ({
+      id: p.id,
+      caption: p.caption || '',
+      image_url: p.media_type === 'VIDEO' ? p.thumbnail_url : p.media_url,
+      permalink: p.permalink,
+      media_type: p.media_type,
+      timestamp: p.timestamp,
+    }))
+    .filter((p) => p.image_url && p.permalink);
 }
 
 (async () => {
   try {
-    const refreshed = await refreshToken(TOKEN);
-    const tokenToUse = refreshed || TOKEN;
+    const posts = await fetchPosts();
 
-    const posts = await fetchPosts(tokenToUse);
+    if (posts.length === 0) {
+      throw new Error('API returned no usable posts. Keeping the previous feed file.');
+    }
 
     const payload = {
       generated_at: new Date().toISOString(),
@@ -100,11 +98,6 @@ async function fetchPosts(token) {
     fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
     fs.writeFileSync(OUTPUT, JSON.stringify(payload, null, 2));
     console.log(`Wrote ${posts.length} posts to ${OUTPUT}`);
-
-    if (refreshed && refreshed !== TOKEN) {
-      console.log(`::add-mask::${refreshed}`);
-      console.log(`NEW_TOKEN=${refreshed}`);
-    }
   } catch (err) {
     console.error(`Fatal: ${err.message}`);
     process.exit(1);
